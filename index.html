@@ -1,108 +1,1319 @@
 <!DOCTYPE html>
-<html lang="ar">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>The Silent Echo - The Twin Edition</title>
-    <style>
-        body { margin: 0; background: #000; overflow: hidden; touch-action: none; font-family: 'Arial'; color: #fff; }
-        #game-area { position: relative; width: 100vw; height: 65vh; background: radial-gradient(circle, #202 0%, #000 100%); overflow: hidden; border-bottom: 3px solid #404; }
-        
-        .char { position: absolute; font-size: 35px; transition: 0.2s; z-index: 5; }
-        #player { font-size: 30px; z-index: 10; filter: drop-shadow(0 0 10px #fff); transition: 0.1s; }
-        #clown { filter: drop-shadow(0 0 15px #f00); }
-        #twin { filter: grayscale(1) drop-shadow(0 0 10px #f0f); opacity: 0.7; } /* الشقيقة */
-        #death { font-size: 50px; opacity: 0.8; }
 
-        #controls { height: 35vh; display: grid; grid-template-columns: repeat(3, 1fr); padding: 10px; gap: 8px; background: #0a0a0a; }
-        button { background: #1a1a1a; color: #f0f; border: 2px solid #505; font-size: 25px; border-radius: 15px; cursor: pointer; }
-        button:active { background: #404; }
-        .status-bar { position: fixed; top: 10px; width: 100%; text-align: center; color: #ff0; z-index: 20; font-size: 14px; }
-        
-        .panic { animation: shake 0.1s infinite; background: #202 !important; }
-        @keyframes shake { 0% { transform: translate(2px, 2px); } 50% { transform: translate(-3px, -3px); } 100% { transform: translate(2px, -2px); } }
-    </style>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>صدى الصمت | Echo of Silence</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cairo:wght@300;400;600;700;900&display=swap');
+
+:root {
+–black: #000000;
+–deep: #05050a;
+–blood: #8b0000;
+–ash: #2a2a2a;
+–static-grey: #888;
+–neon-cyan: #00fff5;
+–neon-pink: #ff006e;
+–neon-yellow: #ffe600;
+–white: #f0ece4;
+–rain: #7db8d4;
+}
+
+- { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+width: 100%; height: 100%; overflow: hidden;
+background: #000; font-family: ‘Cairo’, sans-serif;
+direction: rtl;
+}
+
+/* ===================== GAME CONTAINER ===================== */
+#game {
+width: 100vw; height: 100vh;
+position: relative; overflow: hidden;
+background: var(–deep);
+}
+
+/* ===================== SCENE LAYERS ===================== */
+.scene {
+position: absolute; inset: 0;
+display: none; flex-direction: column;
+align-items: center; justify-content: center;
+}
+.scene.active { display: flex; }
+
+/* ===================== BACKGROUND CANVAS ===================== */
+#bgCanvas {
+position: absolute; inset: 0;
+width: 100%; height: 100%;
+z-index: 0;
+}
+
+/* ===================== MIGRAINE OVERLAY ===================== */
+#migraineOverlay {
+position: absolute; inset: 0; z-index: 50;
+pointer-events: none; opacity: 0;
+transition: opacity 0.3s;
+background: repeating-linear-gradient(
+0deg,
+transparent,
+transparent 2px,
+rgba(0,255,245,0.03) 2px,
+rgba(0,255,245,0.03) 4px
+);
+mix-blend-mode: screen;
+}
+#migraineOverlay.active { opacity: 1; animation: migraine 0.08s infinite; }
+
+@keyframes migraine {
+0%   { filter: hue-rotate(0deg) contrast(1.1); transform: translate(0,0); }
+25%  { filter: hue-rotate(90deg) contrast(1.3); transform: translate(-2px, 1px); }
+50%  { filter: hue-rotate(180deg) contrast(1.1); transform: translate(2px,-1px); }
+75%  { filter: hue-rotate(270deg) contrast(1.3); transform: translate(-1px, 2px); }
+100% { filter: hue-rotate(360deg) contrast(1.1); transform: translate(0,0); }
+}
+
+/* ===================== STATIC OVERLAY ===================== */
+#staticOverlay {
+position: absolute; inset: 0; z-index: 100;
+pointer-events: none; opacity: 0;
+background-image: url(“data:image/svg+xml,%3Csvg viewBox=‘0 0 200 200’ xmlns=‘http://www.w3.org/2000/svg’%3E%3Cfilter id=‘n’%3E%3CfeTurbulence type=‘fractalNoise’ baseFrequency=‘0.9’ numOctaves=‘4’ stitchTiles=‘stitch’/%3E%3C/filter%3E%3Crect width=‘100%25’ height=‘100%25’ filter=‘url(%23n)’/%3E%3C/svg%3E”);
+background-size: 150px 150px;
+mix-blend-mode: screen;
+transition: opacity 0.5s;
+}
+#staticOverlay.active { opacity: 0.15; animation: staticMove 0.05s infinite; }
+#staticOverlay.full { opacity: 1 !important; animation: staticMove 0.04s infinite; }
+@keyframes staticMove {
+0%   { background-position: 0 0; }
+100% { background-position: 150px 150px; }
+}
+
+/* ===================== VIGNETTE ===================== */
+#vignette {
+position: absolute; inset: 0; z-index: 10;
+pointer-events: none;
+background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.85) 100%);
+}
+
+/* ===================== NARRATIVE TEXT ===================== */
+#narrativeBox {
+position: absolute; bottom: 0; left: 0; right: 0;
+z-index: 60; padding: 0 0 170px 0;
+display: flex; flex-direction: column; align-items: center;
+pointer-events: none;
+}
+
+#narrativeText {
+font-family: ‘Amiri’, serif;
+font-size: clamp(15px, 3.5vw, 22px);
+color: var(–white);
+text-align: center;
+max-width: 85%;
+line-height: 1.9;
+text-shadow: 0 0 30px rgba(0,0,0,0.9), 0 2px 4px rgba(0,0,0,1);
+animation: fadeInText 0.8s ease;
+padding: 14px 20px;
+background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+border-radius: 8px;
+letter-spacing: 0.03em;
+}
+
+@keyframes fadeInText {
+from { opacity: 0; transform: translateY(10px); }
+to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===================== CHOICE BUTTONS ===================== */
+#choiceArea {
+position: absolute; bottom: 10px; left: 0; right: 0;
+z-index: 70; padding: 8px 16px;
+display: flex; gap: 10px; justify-content: center;
+flex-wrap: wrap;
+}
+
+.choice-btn {
+font-family: ‘Cairo’, sans-serif;
+font-weight: 700;
+font-size: clamp(12px, 2.8vw, 16px);
+color: var(–black);
+background: var(–white);
+border: none; border-radius: 6px;
+padding: 10px 22px;
+cursor: pointer;
+transition: all 0.15s;
+box-shadow: 0 0 0 2px rgba(255,255,255,0.3), 0 4px 15px rgba(0,0,0,0.6);
+letter-spacing: 0.04em;
+position: relative; overflow: hidden;
+-webkit-tap-highlight-color: transparent;
+user-select: none;
+}
+.choice-btn::after {
+content: ‘’;
+position: absolute; inset: 0;
+background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, transparent 60%);
+}
+.choice-btn:active { transform: scale(0.96); background: #ccc; }
+.choice-btn.danger { background: var(–blood); color: var(–white); }
+.choice-btn.cyan { background: var(–neon-cyan); color: #000; }
+.choice-btn.ghost { background: transparent; color: var(–white); border: 1px solid rgba(255,255,255,0.3); }
+
+/* ===================== ACTION BUTTONS (HOLD/TAP) ===================== */
+#actionArea {
+position: absolute; bottom: 80px; left: 0; right: 0;
+z-index: 65; display: flex;
+justify-content: space-around; align-items: center;
+padding: 0 20px;
+}
+
+.action-btn {
+width: 70px; height: 70px; border-radius: 50%;
+border: 2px solid rgba(255,255,255,0.4);
+background: rgba(0,0,0,0.5);
+backdrop-filter: blur(4px);
+display: flex; flex-direction: column;
+align-items: center; justify-content: center;
+font-family: ‘Cairo’, sans-serif;
+font-size: 10px; font-weight: 700;
+color: rgba(255,255,255,0.85);
+cursor: pointer;
+transition: all 0.1s;
+box-shadow: 0 0 20px rgba(0,0,0,0.5);
+user-select: none;
+}
+.action-btn .icon { font-size: 22px; line-height: 1; }
+.action-btn:active, .action-btn.pressed {
+background: rgba(255,255,255,0.25);
+border-color: var(–neon-cyan);
+box-shadow: 0 0 25px var(–neon-cyan);
+transform: scale(0.92);
+}
+
+/* ===================== BREATHING SLIDER ===================== */
+#breathSlider {
+position: absolute; left: 20px; top: 50%; transform: translateY(-50%);
+z-index: 65; width: 44px; height: 200px;
+display: none; flex-direction: column;
+align-items: center; justify-content: space-between;
+}
+#breathSlider.visible { display: flex; }
+#breathTrack {
+width: 6px; height: 160px;
+background: rgba(255,255,255,0.1);
+border-radius: 3px;
+position: relative; overflow: visible;
+border: 1px solid rgba(255,255,255,0.2);
+}
+#breathFill {
+position: absolute; bottom: 0; left: 0; right: 0;
+background: linear-gradient(to top, var(–neon-cyan), var(–neon-pink));
+border-radius: 3px;
+transition: height 0.1s;
+height: 50%;
+}
+#breathHandle {
+position: absolute; left: -10px; width: 26px; height: 26px;
+background: white; border-radius: 50%;
+top: 50%; transform: translateY(-50%);
+box-shadow: 0 0 15px var(–neon-cyan);
+cursor: ns-resize;
+}
+#breathLabel {
+font-size: 9px; color: rgba(255,255,255,0.5);
+text-align: center; font-family: ‘Cairo’, sans-serif;
+letter-spacing: 0.05em;
+}
+#breathMeter {
+width: 40px; height: 8px; background: rgba(255,255,255,0.1);
+border-radius: 4px; overflow: hidden;
+}
+#breathMeterFill {
+height: 100%; width: 0%;
+background: linear-gradient(to right, var(–neon-cyan), var(–neon-yellow));
+transition: width 0.2s; border-radius: 4px;
+}
+
+/* ===================== TAP COUNTER ===================== */
+#tapCounter {
+position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%);
+z-index: 65; display: none; flex-direction: column; align-items: center; gap: 10px;
+}
+#tapCounter.visible { display: flex; }
+#tapRing {
+width: 90px; height: 90px; border-radius: 50%;
+border: 3px solid var(–neon-yellow);
+display: flex; align-items: center; justify-content: center;
+box-shadow: 0 0 30px var(–neon-yellow), inset 0 0 20px rgba(255,230,0,0.1);
+animation: tapPulse 1s infinite;
+cursor: pointer;
+background: rgba(0,0,0,0.6);
+backdrop-filter: blur(4px);
+transition: all 0.08s;
+}
+#tapRing:active { transform: scale(0.88); box-shadow: 0 0 50px var(–neon-yellow); }
+@keyframes tapPulse {
+0%, 100% { box-shadow: 0 0 30px var(–neon-yellow), inset 0 0 20px rgba(255,230,0,0.1); }
+50%       { box-shadow: 0 0 60px var(–neon-yellow), inset 0 0 30px rgba(255,230,0,0.2); }
+}
+#tapIcon { font-size: 32px; }
+#tapProgress {
+width: 120px; height: 6px;
+background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;
+}
+#tapProgressBar {
+height: 100%; width: 0%; border-radius: 3px;
+background: linear-gradient(to right, var(–neon-yellow), var(–neon-pink));
+transition: width 0.1s;
+}
+#tapText {
+font-size: 11px; color: rgba(255,255,255,0.6);
+font-family: ‘Cairo’, sans-serif;
+}
+
+/* ===================== CALL BUTTON ===================== */
+#callBtn {
+position: absolute; bottom: 80px; right: 20px;
+z-index: 65; display: none;
+width: 65px; height: 65px; border-radius: 50%;
+background: rgba(139,0,0,0.7);
+border: 2px solid rgba(255,100,100,0.5);
+flex-direction: column; align-items: center; justify-content: center;
+font-family: ‘Cairo’, sans-serif;
+font-size: 9px; font-weight: 700; color: white;
+cursor: pointer;
+box-shadow: 0 0 25px rgba(139,0,0,0.6);
+animation: callPulse 2s infinite;
+user-select: none;
+}
+#callBtn.visible { display: flex; }
+#callBtn .icon { font-size: 20px; }
+@keyframes callPulse {
+0%, 100% { box-shadow: 0 0 20px rgba(139,0,0,0.5); }
+50%       { box-shadow: 0 0 40px rgba(255,80,80,0.8); }
+}
+#callBtn:active { transform: scale(0.9); background: rgba(200,0,0,0.9); }
+
+/* ===================== JOYSTICK ===================== */
+#joystick {
+position: absolute; bottom: 90px; left: 25px;
+z-index: 65; display: none;
+width: 90px; height: 90px;
+border-radius: 50%;
+background: rgba(0,0,0,0.4);
+border: 2px solid rgba(255,255,255,0.2);
+backdrop-filter: blur(4px);
+align-items: center; justify-content: center;
+box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+#joystick.visible { display: flex; }
+#joystickKnob {
+width: 38px; height: 38px; border-radius: 50%;
+background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.8), rgba(180,180,180,0.5));
+box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+position: absolute;
+transition: transform 0.05s;
+}
+
+/* ===================== PHASE INDICATOR ===================== */
+#phaseIndicator {
+position: absolute; top: 16px; right: 16px;
+z-index: 70; font-family: ‘Cairo’, sans-serif;
+font-size: 10px; font-weight: 600; letter-spacing: 0.15em;
+color: rgba(255,255,255,0.35); text-transform: uppercase;
+}
+
+/* ===================== TITLE SCREEN ===================== */
+#titleScreen {
+position: absolute; inset: 0; z-index: 200;
+background: var(–deep);
+display: flex; flex-direction: column;
+align-items: center; justify-content: center;
+gap: 0;
+}
+
+#titleScreen.hidden { display: none; }
+
+.title-glitch {
+font-family: ‘Amiri’, serif;
+font-size: clamp(32px, 9vw, 72px);
+color: var(–white);
+letter-spacing: -0.02em;
+position: relative;
+animation: titleFlicker 4s infinite;
+}
+.title-glitch::before, .title-glitch::after {
+content: attr(data-text);
+position: absolute; left: 0; top: 0;
+color: var(–white);
+}
+.title-glitch::before {
+color: var(–neon-cyan); clip: rect(0,900px,0,0);
+animation: glitch1 3s infinite linear;
+}
+.title-glitch::after {
+color: var(–neon-pink); clip: rect(0,900px,0,0);
+animation: glitch2 2.5s infinite linear;
+}
+@keyframes glitch1 {
+0%   { clip: rect(42px,9999px,44px,0); transform: translate(-3px,0); }
+10%  { clip: rect(12px,9999px,59px,0); transform: translate(2px,0); }
+30%  { clip: rect(0,0,0,0); transform: translate(0,0); }
+70%  { clip: rect(0,0,0,0); }
+80%  { clip: rect(22px,9999px,30px,0); transform: translate(-2px,0); }
+100% { clip: rect(0,0,0,0); }
+}
+@keyframes glitch2 {
+0%   { clip: rect(65px,9999px,70px,0); transform: translate(3px,0); }
+20%  { clip: rect(0,0,0,0); }
+60%  { clip: rect(5px,9999px,15px,0); transform: translate(-3px,0); }
+100% { clip: rect(0,0,0,0); }
+}
+@keyframes titleFlicker {
+0%, 94%, 100% { opacity: 1; }
+95% { opacity: 0.7; }
+96% { opacity: 1; }
+97% { opacity: 0.4; }
+98% { opacity: 1; }
+}
+
+.title-en {
+font-family: ‘Cairo’, sans-serif;
+font-size: clamp(11px, 2.5vw, 16px);
+letter-spacing: 0.35em;
+color: rgba(255,255,255,0.2);
+margin-top: 4px;
+text-transform: uppercase;
+}
+
+.title-divider {
+width: 80px; height: 1px;
+background: linear-gradient(to right, transparent, rgba(255,255,255,0.3), transparent);
+margin: 28px 0;
+}
+
+.title-tagline {
+font-family: ‘Amiri’, serif;
+font-size: clamp(13px, 3vw, 18px);
+color: rgba(255,255,255,0.35);
+letter-spacing: 0.05em;
+text-align: center;
+max-width: 280px;
+line-height: 1.8;
+}
+
+#startBtn {
+margin-top: 40px;
+font-family: ‘Cairo’, sans-serif;
+font-size: clamp(13px, 3vw, 17px);
+font-weight: 700;
+color: var(–black);
+background: var(–white);
+border: none; padding: 14px 44px;
+border-radius: 4px;
+cursor: pointer;
+letter-spacing: 0.1em;
+box-shadow: 0 0 40px rgba(255,255,255,0.15);
+transition: all 0.2s;
+animation: startGlow 2.5s infinite;
+}
+@keyframes startGlow {
+0%, 100% { box-shadow: 0 0 20px rgba(255,255,255,0.1); }
+50%       { box-shadow: 0 0 50px rgba(255,255,255,0.3); }
+}
+#startBtn:active { transform: scale(0.95); }
+
+.title-rain {
+position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: -1;
+}
+.rain-drop {
+position: absolute; width: 1px;
+background: linear-gradient(to bottom, transparent, rgba(100,160,200,0.4));
+animation: rainFall linear infinite;
+}
+@keyframes rainFall {
+from { transform: translateY(-100vh); }
+to   { transform: translateY(110vh); }
+}
+
+/* ===================== FINAL MESSAGE ===================== */
+#finalMessage {
+position: absolute; inset: 0; z-index: 300;
+background: black; display: none;
+align-items: center; justify-content: center;
+flex-direction: column; gap: 30px;
+}
+#finalMessage.show { display: flex; }
+#finalText {
+font-family: ‘Amiri’, serif;
+font-size: clamp(18px, 4.5vw, 32px);
+color: rgba(255,255,255,0.85);
+text-align: center;
+max-width: 75%;
+line-height: 2;
+letter-spacing: 0.05em;
+animation: fadeInSlow 3s ease;
+text-shadow: 0 0 40px rgba(255,255,255,0.2);
+}
+@keyframes fadeInSlow {
+from { opacity: 0; } to { opacity: 1; }
+}
+#restartBtn {
+font-family: ‘Cairo’, sans-serif;
+font-size: 13px; color: rgba(255,255,255,0.4);
+background: transparent;
+border: 1px solid rgba(255,255,255,0.15);
+padding: 10px 28px; border-radius: 4px;
+cursor: pointer; letter-spacing: 0.08em;
+transition: all 0.2s;
+}
+#restartBtn:active { color: white; border-color: white; }
+
+/* ===================== CHARACTER DISPLAY ===================== */
+#characterArea {
+position: absolute; bottom: 155px; left: 50%;
+transform: translateX(-50%);
+z-index: 5; display: flex;
+flex-direction: column; align-items: center;
+pointer-events: none;
+}
+
+.character-figure {
+font-size: 52px;
+filter: drop-shadow(0 0 20px rgba(0,0,0,0.8));
+animation: characterBob 3s ease-in-out infinite;
+}
+@keyframes characterBob {
+0%, 100% { transform: translateY(0px); }
+50%       { transform: translateY(-5px); }
+}
+.character-figure.run { animation: characterRun 0.35s ease-in-out infinite; }
+@keyframes characterRun {
+0%, 100% { transform: translateY(0px) rotate(-3deg); }
+50%       { transform: translateY(-8px) rotate(3deg); }
+}
+.character-figure.fallen {
+transform: rotate(90deg) !important;
+animation: none;
+}
+
+/* ===================== ENVIRONMENT ELEMENTS ===================== */
+.env-element {
+position: absolute; pointer-events: none;
+z-index: 2;
+}
+
+/* ===================== CLOWN ===================== */
+#clown {
+position: absolute; z-index: 8;
+font-size: clamp(60px, 15vw, 110px);
+display: none; opacity: 0;
+pointer-events: none;
+filter: drop-shadow(0 0 30px rgba(255,0,100,0.8));
+animation: clownFloat 2s ease-in-out infinite;
+}
+#clown.show { display: block; animation: clownAppear 0.5s ease forwards, clownFloat 2s ease-in-out 0.5s infinite; }
+@keyframes clownAppear {
+from { opacity: 0; transform: scale(0.3) rotate(-20deg); filter: blur(10px); }
+to   { opacity: 1; transform: scale(1) rotate(0deg); filter: none; }
+}
+@keyframes clownFloat {
+0%, 100% { transform: translateY(0) rotate(-2deg); }
+50%       { transform: translateY(-15px) rotate(2deg); }
+}
+
+/* ===================== PARTICLES ===================== */
+#particleCanvas {
+position: absolute; inset: 0; z-index: 3; pointer-events: none;
+}
+
+/* ===================== HUD TINNITUS ===================== */
+#tinnitusBar {
+position: absolute; top: 0; left: 0; right: 0; height: 3px;
+z-index: 69; background: transparent;
+}
+#tinnitusBar.active {
+background: linear-gradient(to right, transparent, var(–neon-cyan), var(–neon-pink), transparent);
+animation: tinnitusFlow 0.3s linear infinite;
+}
+@keyframes tinnitusFlow {
+from { background-position: 0 0; }
+to   { background-position: 200px 0; }
+}
+
+/* ===================== ZIGZAG AURA ===================== */
+#zigzagAura {
+position: absolute; inset: 0; z-index: 49; pointer-events: none;
+opacity: 0; transition: opacity 0.3s;
+}
+#zigzagAura.active { opacity: 1; }
+#zigzagAura svg { width: 100%; height: 100%; }
+</style>
+
 </head>
 <body>
 
-<div class="status-bar" id="status">شقيقتك التوأم تطارد خطاك.. لا تلتفت!</div>
-<div id="game-area">
-    <div id="player" class="char" style="top:50%; left:50%;">🏃</div>
-    <div id="clown" class="char" style="top:10%; left:10%;">🤡</div>
-    <div id="twin" class="char" style="top:80%; left:20%;">👯‍♀️</div>
-    <div id="death" class="char" style="top:10%; left:80%;">💀</div>
-</div>
+<div id="game">
 
-<div id="controls">
-    <button class="empty" style="visibility:hidden"></button>
-    <button onclick="move('up')">⬆️</button>
-    <button class="empty" style="visibility:hidden"></button>
-    <button onclick="move('left')">⬅️</button>
-    <button onclick="initAudio()" style="font-size:12px; color:#fff; background:#505;">بدء الهلع 🔊</button>
-    <button onclick="move('right')">➡️</button>
-    <button class="empty" style="visibility:hidden"></button>
-    <button onclick="move('down')">⬇️</button>
-    <button class="empty" style="visibility:hidden"></button>
+  <!-- BACKGROUND -->
+
+<canvas id="bgCanvas"></canvas>
+<canvas id="particleCanvas"></canvas>
+
+  <!-- OVERLAYS -->
+
+  <div id="vignette"></div>
+  <div id="migraineOverlay"></div>
+  <div id="staticOverlay"></div>
+  <div id="tinnitusBar"></div>
+  <div id="zigzagAura">
+    <svg viewBox="0 0 400 800" preserveAspectRatio="none">
+      <polyline id="zigzagLine" points="" stroke="rgba(0,255,245,0.6)" stroke-width="2" fill="none"/>
+    </svg>
+  </div>
+
+  <!-- CLOWN -->
+
+  <div id="clown">🤡</div>
+
+  <!-- CHARACTER -->
+
+  <div id="characterArea">
+    <div class="character-figure" id="character">🧒</div>
+  </div>
+
+  <!-- NARRATIVE -->
+
+  <div id="narrativeBox">
+    <div id="narrativeText"></div>
+  </div>
+
+  <!-- CONTROLS -->
+
+  <div id="breathSlider">
+    <div id="breathLabel">تنفّس</div>
+    <div id="breathTrack">
+      <div id="breathFill"></div>
+      <div id="breathHandle"></div>
+    </div>
+    <div id="breathMeter"><div id="breathMeterFill"></div></div>
+  </div>
+
+  <div id="joystick">
+    <div id="joystickKnob"></div>
+  </div>
+
+  <div id="callBtn" onclick="triggerCall()">
+    <span class="icon">📣</span>
+    <span>نادِ</span>
+  </div>
+
+  <div id="tapCounter">
+    <div id="tapRing" onclick="handleTap()"><span id="tapIcon">👊</span></div>
+    <div id="tapProgress"><div id="tapProgressBar"></div></div>
+    <div id="tapText">اضغط للنهوض!</div>
+  </div>
+
+  <div id="actionArea"></div>
+
+  <div id="choiceArea"></div>
+
+  <div id="phaseIndicator"></div>
+
+  <!-- TITLE SCREEN -->
+
+  <div id="titleScreen">
+    <div class="title-rain" id="titleRain"></div>
+    <div class="title-glitch" data-text="صدى الصمت">صدى الصمت</div>
+    <div class="title-en">Echo of Silence</div>
+    <div class="title-divider"></div>
+    <div class="title-tagline">حين يصبح الصمتُ أعلى من الصراخ...</div>
+    <button id="startBtn" onclick="startGame()">ابدأ الرحلة</button>
+  </div>
+
+  <!-- FINAL MESSAGE -->
+
+  <div id="finalMessage">
+    <div id="finalText">لقد توقفتَ عن الركض..<br>لكنك نسيتَ كيف تقف.</div>
+    <button id="restartBtn" onclick="restartGame()">ابدأ من جديد</button>
+  </div>
+
 </div>
 
 <script>
-    let pX=50, pY=50, cX=10, cY=10, tX=20, tY=80, dX=80, dY=10;
-    let audioCtx;
+// ========== STATE ==========
+let currentPhase = 0;
+let currentStep = 0;
+let tapCount = 0;
+let tapRequired = 0;
+let tapCallback = null;
+let breathValue = 50;
+let breathTarget = 50;
+let breathDragging = false;
+let breathCalm = 0;
+let migraineActive = false;
+let animFrame = null;
+let bgCtx, particleCtx;
+let particles = [];
+let bgMode = 'rain'; // rain | desert | snow | field | train
+let callCount = 0;
+let joystickActive = false;
+let joystickCallback = null;
 
-    function initAudio() {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        document.getElementById('status').innerText = "لقد حضرت الشقيقة.. الهروب مستحيل!";
+// ========== CANVAS SETUP ==========
+function setupCanvases() {
+  const bgC = document.getElementById('bgCanvas');
+  bgC.width = window.innerWidth; bgC.height = window.innerHeight;
+  bgCtx = bgC.getContext('2d');
+
+  const pC = document.getElementById('particleCanvas');
+  pC.width = window.innerWidth; pC.height = window.innerHeight;
+  particleCtx = pC.getContext('2d');
+}
+
+// ========== BACKGROUND RENDERING ==========
+let bgTime = 0;
+function renderBg() {
+  const W = bgCtx.canvas.width, H = bgCtx.canvas.height;
+  bgCtx.clearRect(0, 0, W, H);
+  bgTime += 0.015;
+
+  if (bgMode === 'rain') renderRain(W, H);
+  else if (bgMode === 'desert') renderDesert(W, H);
+  else if (bgMode === 'snow') renderSnow(W, H);
+  else if (bgMode === 'field') renderField(W, H);
+  else if (bgMode === 'train') renderTrain(W, H);
+}
+
+function renderRain(W, H) {
+  // Sky
+  const sky = bgCtx.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0, '#0a0e1a');
+  sky.addColorStop(1, '#1a1a2e');
+  bgCtx.fillStyle = sky;
+  bgCtx.fillRect(0, 0, W, H);
+
+  // Ground puddle
+  bgCtx.fillStyle = '#12181f';
+  bgCtx.fillRect(0, H*0.7, W, H*0.3);
+  // reflection shimmer
+  bgCtx.fillStyle = `rgba(100,160,210,${0.04 + 0.02*Math.sin(bgTime*2)})`;
+  bgCtx.fillRect(0, H*0.7, W, H*0.05);
+
+  // Rain streaks
+  bgCtx.strokeStyle = 'rgba(100,160,200,0.35)';
+  bgCtx.lineWidth = 0.8;
+  for (let i = 0; i < 120; i++) {
+    const x = ((i * 137.5 + bgTime * 400) % W);
+    const y = ((i * 73 + bgTime * 600) % (H*0.75));
+    bgCtx.beginPath();
+    bgCtx.moveTo(x, y);
+    bgCtx.lineTo(x - 3, y + 18);
+    bgCtx.stroke();
+  }
+
+  // Trees silhouette
+  bgCtx.fillStyle = '#060a0f';
+  for (let i = 0; i < 6; i++) {
+    const tx = i * (W/5) - W*0.05;
+    const th = 80 + i * 30;
+    bgCtx.beginPath();
+    bgCtx.moveTo(tx + 30, H*0.7);
+    bgCtx.lineTo(tx, H*0.7 - th);
+    bgCtx.lineTo(tx + 15, H*0.7 - th + 25);
+    bgCtx.lineTo(tx + 5, H*0.7 - th*0.5);
+    bgCtx.lineTo(tx + 55, H*0.7 - th*0.5);
+    bgCtx.lineTo(tx + 45, H*0.7 - th + 25);
+    bgCtx.lineTo(tx + 60, H*0.7 - th);
+    bgCtx.lineTo(tx + 60, H*0.7);
+    bgCtx.fill();
+  }
+
+  // Dim light circle (streetlamp)
+  const lampGrad = bgCtx.createRadialGradient(W*0.5, H*0.35, 0, W*0.5, H*0.35, 120);
+  lampGrad.addColorStop(0, 'rgba(255,220,150,0.06)');
+  lampGrad.addColorStop(1, 'transparent');
+  bgCtx.fillStyle = lampGrad;
+  bgCtx.fillRect(0,0,W,H);
+}
+
+function renderDesert(W, H) {
+  const sky = bgCtx.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0, '#1a0a00');
+  sky.addColorStop(0.5, '#3d1800');
+  sky.addColorStop(1, '#6b2900');
+  bgCtx.fillStyle = sky; bgCtx.fillRect(0,0,W,H);
+  // dunes
+  bgCtx.fillStyle = '#2a1200';
+  bgCtx.beginPath();
+  bgCtx.moveTo(0, H*0.65);
+  for (let x = 0; x <= W; x += 30) {
+    bgCtx.lineTo(x, H*0.65 - 40*Math.sin(x/80 + bgTime));
+  }
+  bgCtx.lineTo(W, H); bgCtx.lineTo(0, H); bgCtx.fill();
+  // heat shimmer
+  bgCtx.fillStyle = `rgba(255,120,0,${0.02 + 0.01*Math.sin(bgTime*3)})`;
+  bgCtx.fillRect(0,0,W,H);
+  // sun
+  const sunG = bgCtx.createRadialGradient(W*0.8, H*0.15, 0, W*0.8, H*0.15, 60);
+  sunG.addColorStop(0, 'rgba(255,180,50,0.4)'); sunG.addColorStop(1, 'transparent');
+  bgCtx.fillStyle = sunG; bgCtx.fillRect(0,0,W,H);
+}
+
+function renderSnow(W, H) {
+  const sky = bgCtx.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0, '#080c14'); sky.addColorStop(1, '#1a2030');
+  bgCtx.fillStyle = sky; bgCtx.fillRect(0,0,W,H);
+  bgCtx.fillStyle = '#c8d8e8';
+  bgCtx.fillRect(0, H*0.72, W, H*0.28);
+  // snowflakes
+  bgCtx.fillStyle = 'rgba(220,235,255,0.7)';
+  for (let i = 0; i < 80; i++) {
+    const x = ((i*173 + bgTime*80) % W);
+    const y = ((i*97 + bgTime*120) % H);
+    const r = 1 + (i%3)*0.8;
+    bgCtx.beginPath(); bgCtx.arc(x,y,r,0,Math.PI*2); bgCtx.fill();
+  }
+}
+
+function renderField(W, H) {
+  const sky = bgCtx.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0, '#1a0505'); sky.addColorStop(1, '#3a0a0a');
+  bgCtx.fillStyle = sky; bgCtx.fillRect(0,0,W,H);
+  // field
+  bgCtx.fillStyle = '#1a0808';
+  bgCtx.fillRect(0, H*0.6, W, H*0.4);
+  // flowers
+  for (let i = 0; i < 40; i++) {
+    const fx = (i * 127 + 30) % W;
+    const fy = H*0.62 + (i%6)*20;
+    const ashP = Math.min(1, (bgTime - 5) / 8);
+    const r = Math.floor(180 + 75*(1-ashP));
+    const g = Math.floor(ashP*30);
+    bgCtx.fillStyle = `rgba(${r},${g},${g*2},0.85)`;
+    bgCtx.beginPath();
+    bgCtx.arc(fx, fy, 4 + (i%3)*2, 0, Math.PI*2);
+    bgCtx.fill();
+    // stem
+    bgCtx.strokeStyle = `rgba(60,${100-ashP*80},60,0.6)`;
+    bgCtx.lineWidth = 1.5;
+    bgCtx.beginPath(); bgCtx.moveTo(fx, fy+4); bgCtx.lineTo(fx+2, fy+22); bgCtx.stroke();
+  }
+  // ash particles
+  if (bgTime > 5) {
+    particleCtx.fillStyle = 'rgba(60,60,60,0.6)';
+    for (let p of particles) {
+      particleCtx.beginPath();
+      particleCtx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      particleCtx.fill();
     }
+  }
+}
 
-    function move(dir) {
-        if(dir==='up') pY-=8; if(dir==='down') pY+=8;
-        if(dir==='left') pX-=8; if(dir==='right') pX+=8;
-        
-        pX = Math.max(5, Math.min(90, pX));
-        pY = Math.max(5, Math.min(90, pY));
-        
-        document.getElementById('player').style.top = pY+"%";
-        document.getElementById('player').style.left = pX+"%";
+function renderTrain(W, H) {
+  bgCtx.fillStyle = '#03030a'; bgCtx.fillRect(0,0,W,H);
+  // tracks
+  bgCtx.strokeStyle = '#1a1a1a'; bgCtx.lineWidth = 3;
+  bgCtx.beginPath(); bgCtx.moveTo(W*0.35, H); bgCtx.lineTo(W*0.45, 0); bgCtx.stroke();
+  bgCtx.beginPath(); bgCtx.moveTo(W*0.65, H); bgCtx.lineTo(W*0.55, 0); bgCtx.stroke();
+  // platform tiles
+  bgCtx.fillStyle = '#0d0d14';
+  bgCtx.fillRect(0, H*0.65, W*0.3, H*0.35);
+  bgCtx.fillRect(W*0.7, H*0.65, W*0.3, H*0.35);
+  // train glow
+  const tGlow = bgCtx.createRadialGradient(W*0.5, 0, 0, W*0.5, 0, W*0.6);
+  tGlow.addColorStop(0, `rgba(200,220,255,${0.12 + 0.08*Math.abs(Math.sin(bgTime*3))})`);
+  tGlow.addColorStop(1, 'transparent');
+  bgCtx.fillStyle = tGlow; bgCtx.fillRect(0,0,W,H);
+}
 
-        updateEnemies();
+// ========== PARTICLES ==========
+function spawnParticles(mode) {
+  particles = [];
+  if (mode === 'ash') {
+    for (let i = 0; i < 60; i++) {
+      particles.push({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight * 0.7,
+        vx: (Math.random()-0.5) * 0.5,
+        vy: 0.3 + Math.random() * 0.5,
+        r: 1 + Math.random() * 2,
+        life: 1
+      });
     }
+  }
+}
 
-    function updateEnemies() {
-        // المهرج (يلاحقك مباشرة)
-        cX += (pX > cX) ? 2 : -2;
-        cY += (pY > cY) ? 2 : -2;
-        
-        // الشقيقة (تتحرك عكس حركتك أو تحاول محاصرتك)
-        tX += (pX > tX) ? 3 : -1;
-        tY += (pY > tY) ? 1 : -3;
+function updateParticles() {
+  particleCtx.clearRect(0, 0, particleCtx.canvas.width, particleCtx.canvas.height);
+  for (let p of particles) {
+    p.x += p.vx; p.y += p.vy;
+    if (p.y > window.innerHeight) { p.y = 0; p.x = Math.random() * window.innerWidth; }
+    particleCtx.fillStyle = `rgba(80,80,80,${p.life * 0.5})`;
+    particleCtx.beginPath();
+    particleCtx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    particleCtx.fill();
+  }
+}
 
-        // ملك الموت (يزحف ببطء)
-        dX += (pX > dX) ? 0.5 : -0.5;
-        dY += (pY > dY) ? 0.5 : -0.5;
+// ========== ANIMATION LOOP ==========
+function gameLoop() {
+  renderBg();
+  updateParticles();
+  animFrame = requestAnimationFrame(gameLoop);
+}
 
-        document.getElementById('clown').style.top = cY+"%";
-        document.getElementById('clown').style.left = cX+"%";
-        document.getElementById('twin').style.top = tY+"%";
-        document.getElementById('twin').style.left = tX+"%";
-        document.getElementById('death').style.top = dY+"%";
-        document.getElementById('death').style.left = dX+"%";
+// ========== MIGRAINE ==========
+function setMigraine(on) {
+  migraineActive = on;
+  document.getElementById('migraineOverlay').classList.toggle('active', on);
+  document.getElementById('staticOverlay').classList.toggle('active', on);
+  document.getElementById('tinnitusBar').classList.toggle('active', on);
+  document.getElementById('zigzagAura').classList.toggle('active', on);
+  if (on) animateZigzag();
+}
 
-        checkHit();
+function animateZigzag() {
+  if (!migraineActive) return;
+  const W = window.innerWidth, H = window.innerHeight;
+  let pts = '';
+  let x = W * 0.1, y = H * 0.1;
+  const step = 20;
+  let dir = 1;
+  while (x < W * 0.9) {
+    pts += `${x},${y} `;
+    x += step; y += dir * (15 + Math.random() * 10);
+    dir *= -1;
+    if (y < H * 0.05) y = H * 0.05;
+    if (y > H * 0.95) y = H * 0.95;
+  }
+  document.getElementById('zigzagLine').setAttribute('points', pts);
+  setTimeout(animateZigzag, 150);
+}
+
+// ========== UI HELPERS ==========
+function setNarrative(text) {
+  const el = document.getElementById('narrativeText');
+  el.style.animation = 'none';
+  el.offsetHeight; // reflow
+  el.style.animation = 'fadeInText 0.8s ease';
+  el.innerHTML = text;
+}
+
+function setChoices(choices) {
+  const area = document.getElementById('choiceArea');
+  area.innerHTML = '';
+  choices.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn ' + (c.cls || '');
+    btn.textContent = c.label;
+    btn.onclick = c.action;
+    area.appendChild(btn);
+  });
+}
+
+function clearChoices() { document.getElementById('choiceArea').innerHTML = ''; }
+
+function setPhase(label) { document.getElementById('phaseIndicator').textContent = label; }
+
+function showChar(emoji, anim) {
+  const c = document.getElementById('character');
+  c.textContent = emoji;
+  c.className = 'character-figure ' + (anim || '');
+}
+
+function showClown(show, pos) {
+  const cl = document.getElementById('clown');
+  if (show) {
+    cl.style.left = (pos?.x ?? '50%');
+    cl.style.top = (pos?.y ?? '40%');
+    if (!cl.classList.contains('show')) cl.classList.add('show');
+  } else {
+    cl.className = 'character-figure';
+    cl.style.display = 'none';
+  }
+}
+
+function showCallBtn(show) {
+  document.getElementById('callBtn').classList.toggle('visible', show);
+}
+
+function showJoystick(show, cb) {
+  document.getElementById('joystick').classList.toggle('visible', show);
+  joystickCallback = cb || null;
+  joystickActive = show;
+}
+
+function showBreathSlider(show) {
+  document.getElementById('breathSlider').classList.toggle('visible', show);
+}
+
+function startTapChallenge(required, icon, text, cb) {
+  tapCount = 0; tapRequired = required; tapCallback = cb;
+  document.getElementById('tapIcon').textContent = icon || '👊';
+  document.getElementById('tapText').textContent = text || 'اضغط!';
+  document.getElementById('tapProgressBar').style.width = '0%';
+  document.getElementById('tapCounter').classList.add('visible');
+}
+
+function handleTap() {
+  if (!tapCallback) return;
+  tapCount++;
+  const pct = Math.min(100, (tapCount / tapRequired) * 100);
+  document.getElementById('tapProgressBar').style.width = pct + '%';
+  document.getElementById('tapRing').style.transform = 'scale(0.85)';
+  setTimeout(() => document.getElementById('tapRing').style.transform = '', 80);
+  if (tapCount >= tapRequired) {
+    document.getElementById('tapCounter').classList.remove('visible');
+    const cb = tapCallback; tapCallback = null;
+    setTimeout(cb, 300);
+  }
+}
+
+// ========== BREATHING MECHANIC ==========
+function setupBreath() {
+  const handle = document.getElementById('breathHandle');
+  const track = document.getElementById('breathTrack');
+  let startY, startVal;
+
+  function onStart(e) {
+    breathDragging = true;
+    startY = (e.touches ? e.touches[0].clientY : e.clientY);
+    startVal = breathValue;
+    e.preventDefault();
+  }
+  function onMove(e) {
+    if (!breathDragging) return;
+    const cy = (e.touches ? e.touches[0].clientY : e.clientY);
+    const dy = startY - cy;
+    breathValue = Math.max(0, Math.min(100, startVal + dy / 1.5));
+    updateBreathUI();
+    // calm if near 50
+    const dist = Math.abs(breathValue - 50);
+    if (dist < 12) breathCalm = Math.min(100, breathCalm + 2);
+    else breathCalm = Math.max(0, breathCalm - 1);
+    document.getElementById('breathMeterFill').style.width = breathCalm + '%';
+    if (breathCalm >= 100) { breathCalm = 0; onBreathCalm(); }
+  }
+  function onEnd() { breathDragging = false; }
+
+  handle.addEventListener('touchstart', onStart, {passive:false});
+  handle.addEventListener('touchmove', onMove, {passive:false});
+  handle.addEventListener('touchend', onEnd);
+  handle.addEventListener('mousedown', onStart);
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onEnd);
+}
+
+function updateBreathUI() {
+  const pct = breathValue / 100;
+  document.getElementById('breathFill').style.height = (breathValue) + '%';
+  document.getElementById('breathHandle').style.top = (100 - breathValue) + '%';
+}
+
+let breathCalmCallback = null;
+function onBreathCalm() {
+  if (breathCalmCallback) { const cb = breathCalmCallback; breathCalmCallback = null; cb(); }
+}
+
+// ========== CALL BUTTON ==========
+function triggerCall() {
+  callCount++;
+  const shouts = ['مامااا!', 'باباا!', 'ماما..', 'بابا!!', 'لا تتركوني!'];
+  const s = shouts[callCount % shouts.length];
+  setNarrative(`<em style="color:rgba(255,180,180,0.9)">«${s}»</em>`);
+
+  // flash
+  document.getElementById('callBtn').style.boxShadow = '0 0 60px rgba(255,80,80,1)';
+  setTimeout(() => document.getElementById('callBtn').style.boxShadow = '', 300);
+
+  if (callCount === 3 && currentPhase === 1) setTimeout(phase1_step3, 800);
+}
+
+// ========== JOYSTICK (VISUAL ONLY) ==========
+function setupJoystick() {
+  const joy = document.getElementById('joystick');
+  const knob = document.getElementById('joystickKnob');
+  let dragging = false, jStartX, jStartY;
+
+  function jStart(e) {
+    dragging = true;
+    const t = e.touches ? e.touches[0] : e;
+    jStartX = t.clientX; jStartY = t.clientY;
+  }
+  function jMove(e) {
+    if (!dragging) return;
+    const t = e.touches ? e.touches[0] : e;
+    const dx = Math.max(-28, Math.min(28, t.clientX - jStartX));
+    const dy = Math.max(-28, Math.min(28, t.clientY - jStartY));
+    knob.style.transform = `translate(${dx}px,${dy}px)`;
+    if (joystickCallback) joystickCallback(dx, dy);
+    e.preventDefault();
+  }
+  function jEnd() {
+    dragging = false;
+    knob.style.transform = '';
+  }
+
+  joy.addEventListener('touchstart', jStart, {passive:false});
+  joy.addEventListener('touchmove', jMove, {passive:false});
+  joy.addEventListener('touchend', jEnd);
+  joy.addEventListener('mousedown', jStart);
+  document.addEventListener('mousemove', jMove);
+  document.addEventListener('mouseup', jEnd);
+}
+
+// ========== TITLE SCREEN ==========
+function buildTitleRain() {
+  const container = document.getElementById('titleRain');
+  for (let i = 0; i < 60; i++) {
+    const d = document.createElement('div');
+    d.className = 'rain-drop';
+    d.style.left = (Math.random() * 100) + '%';
+    d.style.height = (40 + Math.random() * 80) + 'px';
+    d.style.animationDuration = (0.6 + Math.random() * 0.8) + 's';
+    d.style.animationDelay = (Math.random() * 1.5) + 's';
+    d.style.opacity = 0.3 + Math.random() * 0.5;
+    container.appendChild(d);
+  }
+}
+
+// ========== PHASE 1: THE PARK ==========
+function startPhase1() {
+  currentPhase = 1; currentStep = 1;
+  bgMode = 'rain'; callCount = 0;
+  setPhase('المشهد الأول: الحديقة');
+  showChar('🧒', '');
+  showCallBtn(true);
+  showJoystick(false);
+  showBreathSlider(false);
+
+  setNarrative('المطرُ يهطل بلا رحمة على الحديقة. أرى ظلَّين يمشيان بعيداً.. أمي.. أبي.. ينسلّان في الظلام كأنهما لم يكونا.');
+  setChoices([
+    { label: '🏃 اجرِ خلفهم', cls: '', action: phase1_run },
+    { label: '📣 ناديهم', cls: 'ghost', action: () => { triggerCall(); } }
+  ]);
+}
+
+let runInterval = null;
+function phase1_run() {
+  clearChoices();
+  showChar('🧒', 'run');
+  setNarrative('تجري.. الأرضُ طينٌ ثقيل. أقدامك تغوص. نداؤك يضيع في صوت الرعد. ثلاثَ مرات.. نادِهم!');
+}
+
+function phase1_step3() {
+  clearChoices();
+  setMigraine(true);
+  showChar('🧒', 'fallen');
+  setNarrative('الأرضُ تبتلع ركبتيك. الطينُ بارد كالموت. العالمُ يضجّ.. تضجّ رأسك.');
+  document.getElementById('characterArea').style.bottom = '170px';
+  setTimeout(() => {
+    startTapChallenge(8, '✊', 'انهض! اضغط!', phase1_clown);
+  }, 1500);
+}
+
+function phase1_clown() {
+  setMigraine(false);
+  showChar('🧒', '');
+  showCallBtn(false);
+  setNarrative('وقفتَ.. لكن الظلّين اختفيا. وفي مكانهما، خلف شجرة عارية، شيءٌ يضحك.');
+  document.getElementById('clown').style.left = '55%';
+  document.getElementById('clown').style.top = '30%';
+  document.getElementById('clown').style.display = 'block';
+  document.getElementById('clown').classList.add('show');
+  setTimeout(() => {
+    setChoices([
+      { label: '😱 لا تنظر', cls: 'ghost', action: () => transitionTo(2) },
+      { label: '👁 انظر إليه', cls: 'danger', action: () => { setMigraine(true); setTimeout(()=>transitionTo(2),1500); } }
+    ]);
+  }, 2000);
+}
+
+// ========== TRANSITION ==========
+function transitionTo(phase) {
+  clearChoices();
+  showCallBtn(false);
+  showJoystick(false);
+  showBreathSlider(false);
+  document.getElementById('clown').classList.remove('show');
+  document.getElementById('clown').style.display = 'none';
+  setMigraine(false);
+
+  const st = document.getElementById('staticOverlay');
+  st.classList.add('full');
+  st.style.opacity = '1';
+  setTimeout(() => {
+    st.classList.remove('full');
+    st.style.opacity = '';
+    if (phase === 2) startPhase2();
+    else if (phase === 3) startPhase3();
+    else if (phase === 4) startPhase4();
+  }, 1200);
+}
+
+// ========== PHASE 2: THE CITY ==========
+function startPhase2() {
+  currentPhase = 2;
+  bgMode = 'desert';
+  setPhase('المشهد الثاني: المدينة');
+  showChar('🧍', '');
+  showBreathSlider(true);
+  breathCalm = 0;
+  breathCalmCallback = phase2_survive;
+
+  setMigraine(true);
+  setNarrative('المدينةُ تنزلق. الشارعُ كانَ ثلجاً.. الآن رملٌ. الناسُ يتلاشون كدخانٍ. صدرك يضيق. التنفّس.. تحكّم في تنفّسك.');
+  setChoices([]);
+  document.getElementById('breathMeterFill').style.width = '0%';
+
+  // alternate desert/snow
+  let alt = false;
+  const altInterval = setInterval(() => {
+    if (currentPhase !== 2) { clearInterval(altInterval); return; }
+    alt = !alt;
+    bgMode = alt ? 'snow' : 'desert';
+  }, 3000);
+}
+
+function phase2_survive() {
+  setMigraine(false);
+  bgMode = 'rain';
+  showBreathSlider(false);
+  showChar('🧍', '');
+  setNarrative('رئتاك تتنهّدان. المدينةُ تثبت لحظةً. تلمح في البعيد حقلاً أحمر.. أحمر كالدم أو كالورد؟');
+  setChoices([
+    { label: '🌹 اتجه للحقل', cls: '', action: () => transitionTo(3) }
+  ]);
+}
+
+// ========== PHASE 3: THE FIELD ==========
+function startPhase3() {
+  currentPhase = 3;
+  bgMode = 'field';
+  bgTime = 0;
+  setPhase('المشهد الثالث: الحقل');
+  showChar('🧍', '');
+  showJoystick(true);
+  spawnParticles('ash');
+
+  setNarrative('الحقلُ يمتد. وردٌ أحمر يحترق بصمت. وهناك.. فتاةٌ بظهرها إليك. تسير.');
+  setChoices([{ label: '🎮 حرّك الجوستيك لتلحق', cls: 'ghost', action: ()=>{} }]);
+
+  joystickCallback = () => {};
+
+  // after some joystick use, auto progress
+  let joyTicks = 0;
+  const joyCheck = setInterval(() => {
+    if (currentPhase !== 3) { clearInterval(joyCheck); return; }
+    joyTicks++;
+    if (joyTicks === 20) {
+      setNarrative('تركض نحوها. الورودُ تتحوّل رماداً تحت قدميك. هي تبتعد.. كلما أسرعتَ ابتعدت أكثر.');
     }
-
-    function checkHit() {
-        const area = document.getElementById('game-area');
-        const dTwin = Math.sqrt(Math.pow(pX-tX,2)+Math.pow(pY-tY,2));
-        const dClown = Math.sqrt(Math.pow(pX-cX,2)+Math.pow(pY-cY,2));
-
-        if(dTwin < 15) area.classList.add('panic'); else area.classList.remove('panic');
-
-        if(dTwin < 7 || dClown < 7) {
-            if(window.navigator.vibrate) window.navigator.vibrate([200, 100, 500]);
-            document.getElementById('status').innerText = "أمسكت بك شقيقتك.. إلى الأبد!";
-            setTimeout(()=>location.reload(), 1500);
-        }
+    if (joyTicks === 50) {
+      clearInterval(joyCheck);
+      phase3_end();
     }
+  }, 300);
+}
+
+function phase3_end() {
+  showJoystick(false);
+  clearChoices();
+  setMigraine(true);
+  showChar('🧍', '');
+  setNarrative('توقفتَ. الحقلُ كلّه رمادٌ الآن. الفتاةُ.. اختفت. أو ربما لم تكن.');
+  setTimeout(() => {
+    setMigraine(false);
+    setChoices([{ label: '🚉 استمر.. إلى المحطة', cls: '', action: () => transitionTo(4) }]);
+  }, 2500);
+}
+
+// ========== PHASE 4: THE TRAIN ==========
+function startPhase4() {
+  currentPhase = 4;
+  bgMode = 'train';
+  setPhase('المشهد الرابع: المحطة');
+  showChar('🧍', 'run');
+
+  setNarrative('صوتُ القطار يهدر. المنصةُ فارغة. الضوءُ يقترب بسرعة مجنونة. اركض! اضرب الزجاج!');
+  setChoices([]);
+  setTimeout(() => {
+    startTapChallenge(15, '🚂', 'اركض! اضغط بسرعة!', phase4_enter);
+  }, 1000);
+}
+
+function phase4_enter() {
+  showChar('🧍', '');
+  setMigraine(true);
+  setNarrative('قفزتَ. العربةُ الأخيرة. بابها مفتوح كفمٍ صامت. تدخل.');
+  setTimeout(() => {
+    setMigraine(false);
+    phase4_final();
+  }, 2000);
+}
+
+function phase4_final() {
+  clearChoices();
+  showChar('', '');
+  bgMode = 'train';
+  setNarrative('العربةُ فارغة. لا صوت. حتى الطنين اختفى. المقاعدُ الزرقاء تحدّق.');
+  setTimeout(() => {
+    // full static
+    document.getElementById('staticOverlay').classList.add('full');
+    document.getElementById('staticOverlay').style.opacity = '1';
+    setTimeout(() => {
+      showFinalMessage();
+    }, 1500);
+  }, 3000);
+}
+
+function showFinalMessage() {
+  document.getElementById('staticOverlay').style.opacity = '0';
+  setTimeout(() => {
+    document.getElementById('staticOverlay').classList.remove('full');
+    document.getElementById('finalMessage').classList.add('show');
+    cancelAnimationFrame(animFrame);
+  }, 800);
+}
+
+// ========== GAME FLOW ==========
+function startGame() {
+  document.getElementById('titleScreen').classList.add('hidden');
+  gameLoop();
+  startPhase1();
+}
+
+function restartGame() {
+  document.getElementById('finalMessage').classList.remove('show');
+  document.getElementById('staticOverlay').style.opacity = '';
+  bgTime = 0; callCount = 0; breathCalm = 0; tapCount = 0;
+  particles = [];
+  showChar('🧒', '');
+  showCallBtn(false);
+  showJoystick(false);
+  showBreathSlider(false);
+  document.getElementById('tapCounter').classList.remove('visible');
+  document.getElementById('characterArea').style.bottom = '';
+  setMigraine(false);
+  cancelAnimationFrame(animFrame);
+  gameLoop();
+  startPhase1();
+}
+
+// ========== INIT ==========
+window.addEventListener('load', () => {
+  setupCanvases();
+  buildTitleRain();
+  setupBreath();
+  setupJoystick();
+});
+
+window.addEventListener('resize', () => {
+  setupCanvases();
+});
 </script>
+
 </body>
 </html>
