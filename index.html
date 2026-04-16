@@ -1,52 +1,108 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Silent Echo 2026</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Silent Echo - The Twin Edition</title>
     <style>
-        body { 
-            background: radial-gradient(circle, #0f0000 0%, #000 100%); 
-            color: #8b0000; font-family: 'Courier New', monospace;
-            display: flex; justify-content: center; align-items: center; 
-            height: 100vh; margin: 0; overflow: hidden;
-        }
-        #game-box { 
-            text-align: center; max-width: 600px; padding: 40px;
-            border: 1px solid #300; background: rgba(0,0,0,0.9);
-            box-shadow: 0 0 30px #400; border-radius: 5px;
-        }
-        .glitch { animation: shake 0.5s infinite; text-shadow: 2px 2px #f00; }
-        @keyframes shake {
-            0% { transform: translate(1px, 1px); }
-            20% { transform: translate(-1px, -2px); }
-            100% { transform: translate(1px, -1px); }
-        }
-        button { 
-            background: #1a0000; color: #ff4d4d; border: 1px solid #400;
-            padding: 15px 30px; margin: 10px; cursor: pointer;
-            font-size: 18px; transition: 0.3s; width: 100%;
-        }
-        button:hover { background: #400; color: #fff; box-shadow: 0 0 20px #f00; }
-        p { color: #ccc; font-size: 20px; line-height: 1.6; min-height: 120px; }
+        body { margin: 0; background: #000; overflow: hidden; touch-action: none; font-family: 'Arial'; color: #fff; }
+        #game-area { position: relative; width: 100vw; height: 65vh; background: radial-gradient(circle, #202 0%, #000 100%); overflow: hidden; border-bottom: 3px solid #404; }
+        
+        .char { position: absolute; font-size: 35px; transition: 0.2s; z-index: 5; }
+        #player { font-size: 30px; z-index: 10; filter: drop-shadow(0 0 10px #fff); transition: 0.1s; }
+        #clown { filter: drop-shadow(0 0 15px #f00); }
+        #twin { filter: grayscale(1) drop-shadow(0 0 10px #f0f); opacity: 0.7; } /* الشقيقة */
+        #death { font-size: 50px; opacity: 0.8; }
+
+        #controls { height: 35vh; display: grid; grid-template-columns: repeat(3, 1fr); padding: 10px; gap: 8px; background: #0a0a0a; }
+        button { background: #1a1a1a; color: #f0f; border: 2px solid #505; font-size: 25px; border-radius: 15px; cursor: pointer; }
+        button:active { background: #404; }
+        .status-bar { position: fixed; top: 10px; width: 100%; text-align: center; color: #ff0; z-index: 20; font-size: 14px; }
+        
+        .panic { animation: shake 0.1s infinite; background: #202 !important; }
+        @keyframes shake { 0% { transform: translate(2px, 2px); } 50% { transform: translate(-3px, -3px); } 100% { transform: translate(2px, -2px); } }
     </style>
-</head> 
+</head>
 <body>
-    <div id="game-box">
-        <h1 class="glitch">صـدى الصـمـت</h1>
-        <p id="msg">أنت لا تتذكر كيف وصلت هنا.. الزنزانة باردة، وهناك صوت خربشة خلف الجدار الأحمر. ماذا ستفعل؟</p>
-        <div id="btns">
-            <button onclick="next('تضع أذنك على الجدار.. فجأة تتوقف الخربشة، وتسمع صوت أنفاس ثقيلة خلفك مباشرة!', 'التفت بسرعة', 'أركض للجهة الأخرى')">أقترب من الجدار</button>
-            <button onclick="next('تحاول فتح الباب، لكن المقبض يتحول إلى يد بشرية باردة تمسك يدك!', 'اصرخ', 'احاول سحب يدي')">أحاول فتح الباب</button>
-        </div>
-    </div>
-    <script>
-        function next(txt, b1, b2) {
-            document.getElementById('msg').innerText = txt;
-            if(b1) {
-                document.getElementById('btns').innerHTML = `<button onclick="location.reload()">${b1}</button><button onclick="location.reload()">${b2}</button>`;
-            }
+
+<div class="status-bar" id="status">شقيقتك التوأم تطارد خطاك.. لا تلتفت!</div>
+<div id="game-area">
+    <div id="player" class="char" style="top:50%; left:50%;">🏃</div>
+    <div id="clown" class="char" style="top:10%; left:10%;">🤡</div>
+    <div id="twin" class="char" style="top:80%; left:20%;">👯‍♀️</div>
+    <div id="death" class="char" style="top:10%; left:80%;">💀</div>
+</div>
+
+<div id="controls">
+    <button class="empty" style="visibility:hidden"></button>
+    <button onclick="move('up')">⬆️</button>
+    <button class="empty" style="visibility:hidden"></button>
+    <button onclick="move('left')">⬅️</button>
+    <button onclick="initAudio()" style="font-size:12px; color:#fff; background:#505;">بدء الهلع 🔊</button>
+    <button onclick="move('right')">➡️</button>
+    <button class="empty" style="visibility:hidden"></button>
+    <button onclick="move('down')">⬇️</button>
+    <button class="empty" style="visibility:hidden"></button>
+</div>
+
+<script>
+    let pX=50, pY=50, cX=10, cY=10, tX=20, tY=80, dX=80, dY=10;
+    let audioCtx;
+
+    function initAudio() {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        document.getElementById('status').innerText = "لقد حضرت الشقيقة.. الهروب مستحيل!";
+    }
+
+    function move(dir) {
+        if(dir==='up') pY-=8; if(dir==='down') pY+=8;
+        if(dir==='left') pX-=8; if(dir==='right') pX+=8;
+        
+        pX = Math.max(5, Math.min(90, pX));
+        pY = Math.max(5, Math.min(90, pY));
+        
+        document.getElementById('player').style.top = pY+"%";
+        document.getElementById('player').style.left = pX+"%";
+
+        updateEnemies();
+    }
+
+    function updateEnemies() {
+        // المهرج (يلاحقك مباشرة)
+        cX += (pX > cX) ? 2 : -2;
+        cY += (pY > cY) ? 2 : -2;
+        
+        // الشقيقة (تتحرك عكس حركتك أو تحاول محاصرتك)
+        tX += (pX > tX) ? 3 : -1;
+        tY += (pY > tY) ? 1 : -3;
+
+        // ملك الموت (يزحف ببطء)
+        dX += (pX > dX) ? 0.5 : -0.5;
+        dY += (pY > dY) ? 0.5 : -0.5;
+
+        document.getElementById('clown').style.top = cY+"%";
+        document.getElementById('clown').style.left = cX+"%";
+        document.getElementById('twin').style.top = tY+"%";
+        document.getElementById('twin').style.left = tX+"%";
+        document.getElementById('death').style.top = dY+"%";
+        document.getElementById('death').style.left = dX+"%";
+
+        checkHit();
+    }
+
+    function checkHit() {
+        const area = document.getElementById('game-area');
+        const dTwin = Math.sqrt(Math.pow(pX-tX,2)+Math.pow(pY-tY,2));
+        const dClown = Math.sqrt(Math.pow(pX-cX,2)+Math.pow(pY-cY,2));
+
+        if(dTwin < 15) area.classList.add('panic'); else area.classList.remove('panic');
+
+        if(dTwin < 7 || dClown < 7) {
+            if(window.navigator.vibrate) window.navigator.vibrate([200, 100, 500]);
+            document.getElementById('status').innerText = "أمسكت بك شقيقتك.. إلى الأبد!";
+            setTimeout(()=>location.reload(), 1500);
         }
-    </script>
+    }
+</script>
 </body>
 </html>
